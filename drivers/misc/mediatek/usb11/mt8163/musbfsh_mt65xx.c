@@ -83,8 +83,8 @@ void usb11_hs_slew_rate_cal(void)
 	    value = (unsigned char)(x / 1000);
 		if (((x - value * 1000) / 100) >= 5)
 			value += 1;
-		/* INFO("[USB11PHY]slew calibration:FM_OUT =%d,
-		 * x=%d,value=%d\n",data,x,value);
+		/* INFO("[USB11PHY]slew calibration:FM_OUT=%d,x=%d,value=%d\n",
+		 *	data, x, value);
 		 */
 	}
 
@@ -304,8 +304,6 @@ void mt65xx_usb11_phy_savecurrent(void)
 
 	/*4 13.  wait 1us*/
 	udelay(1);
-	/*4 14. turn off internal 48Mhz PLL.*/
-	enable_phy_clock(false);
 }
 
 void mt81xx_usb11_phy_recover(void)
@@ -385,14 +383,12 @@ void mt81xx_usb11_phy_recover(void)
 	USB11PHY_SET8(0x6c, 0x2c);
 #endif
 	return;
-	}
+}
 
-	void mt65xx_usb11_phy_recover(void)
-	{
+void mt65xx_usb11_phy_recover(void)
+{
 	INFO("[Flow][USB11]%s:%d\n", __func__, __LINE__);
 	INFO("mt65xx_usb11_phy_recover++\r\n");
-	/*4 1. turn on USB reference clock.  */
-	enable_phy_clock(true);
 
 #if 0
 	USB11PHY_SET8(U1PHTCR2 + 3,
@@ -627,36 +623,28 @@ void musbfs_check_mpu_violation(u32 addr, int wr_vio)
 	INFO(KERN_CRIT "POWER = 0x%x,DEVCTL= 0x%x.\n",
 		musbfsh_readb(mregs, MUSBFSH_POWER),
 	musbfsh_readb((void __iomem *)USB11_BASE, MUSBFSH_DEVCTL));
-	INFO(KERN_CRIT "DMA_CNTLch0 0x%04x,DMA_ADDRch0 0x%08x,
-		DMA_COUNTch0 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch0 0x%04x,ADDRch0 0x%08x,COUNTch0 0x%08x\n",
 		musbfsh_readw(mregs, 0x204), musbfsh_readl(mregs, 0x208),
 		musbfsh_readl(mregs, 0x20C));
-	INFO(KERN_CRIT "DMA_CNTLch1 0x%04x,DMA_ADDRch1 0x%08x,
-		DMA_COUNTch1 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch1 0x%04x,ADDRch1 0x%08x,COUNTch1 0x%08x\n",
 		musbfsh_readw(mregs, 0x214), musbfsh_readl(mregs, 0x218),
 		musbfsh_readl(mregs, 0x21C));
-	INFO(KERN_CRIT "DMA_CNTLch2 0x%04x,DMA_ADDRch2 0x%08x,
-		DMA_COUNTch2 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch2 0x%04x,ADDRch2 0x%08x,COUNTch2 0x%08x\n",
 		musbfsh_readw(mregs, 0x224), musbfsh_readl(mregs, 0x228),
 		musbfsh_readl(mregs, 0x22C));
-	INFO(KERN_CRIT "DMA_CNTLch3 0x%04x,DMA_ADDRch3 0x%08x,
-		DMA_COUNTch3 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch3 0x%04x,ADDRch3 0x%08x,COUNTch3 0x%08x\n",
 		musbfsh_readw(mregs, 0x234), musbfsh_readl(mregs, 0x238),
 		musbfsh_readl(mregs, 0x23C));
-	INFO(KERN_CRIT "DMA_CNTLch4 0x%04x,DMA_ADDRch4 0x%08x,
-		DMA_COUNTch4 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch4 0x%04x,ADDRch4 0x%08x,COUNTch4 0x%08x\n",
 		musbfsh_readw(mregs, 0x244), musbfsh_readl(mregs, 0x248),
 		musbfsh_readl(mregs, 0x24C));
-	INFO(KERN_CRIT "DMA_CNTLch5 0x%04x,DMA_ADDRch5 0x%08x,
-		DMA_COUNTch5 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch5 0x%04x,ADDRch5 0x%08x,COUNTch5 0x%08x\n",
 		musbfsh_readw(mregs, 0x254), musbfsh_readl(mregs, 0x258),
 		musbfsh_readl(mregs, 0x25C));
-	INFO(KERN_CRIT "DMA_CNTLch6 0x%04x,DMA_ADDRch6 0x%08x,
-		DMA_COUNTch6 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch6 0x%04x,ADDRch6 0x%08x,COUNTch6 0x%08x\n",
 		musbfsh_readw(mregs, 0x264), musbfsh_readl(mregs, 0x268),
 		musbfsh_readl(mregs, 0x26C));
-	INFO(KERN_CRIT "DMA_CNTLch7 0x%04x,DMA_ADDRch7 0x%08x,
-		DMA_COUNTch7 0x%08x\n",
+	INFO(KERN_CRIT "DMA_CNTLch7 0x%04x,ADDRch7 0x%08x,COUNTch7 0x%08x\n",
 		musbfsh_readw(mregs, 0x274), musbfsh_readl(mregs, 0x278),
 		musbfsh_readl(mregs, 0x27C));
 }
@@ -697,7 +685,7 @@ static const struct musbfsh_platform_ops mt_usb11_ops = {
 
 static u64 mt_usb11_dmamask = DMA_BIT_MASK(32);
 
-static int __init mt_usb11_probe(struct platform_device *pdev)
+static int mt_usb11_probe(struct platform_device *pdev)
 {
 	struct musbfsh_hdrc_platform_data *pdata = pdev->dev.platform_data;
 	struct platform_device *musbfsh;
@@ -815,7 +803,7 @@ err0:
 	return ret;
 }
 
-static int __exit mt_usb_remove(struct platform_device *pdev)
+static int mt_usb_remove(struct platform_device *pdev)
 {
 	struct mt_usb11_glue *glue = platform_get_drvdata(pdev);
 
@@ -828,7 +816,7 @@ static int __exit mt_usb_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver mt_usb11_driver = {
-	.remove = __exit_p(mt_usb_remove),
+	.remove = mt_usb_remove,
 	.probe = mt_usb11_probe,
 	.driver = {
 	.name = "mt_usb11",
@@ -838,7 +826,7 @@ static struct platform_driver mt_usb11_driver = {
 	},
 };
 
-int usb11_init(void)
+int __init usb11_init(void)
 {
 	INFO("[Flow][USB11]%s:%d\n", __func__, __LINE__);
 	return platform_driver_register(&mt_usb11_driver);
@@ -846,7 +834,7 @@ int usb11_init(void)
 
 /*mubsys_initcall(usb11_init);*/
 
-void usb11_exit(void)
+void __exit usb11_exit(void)
 {
 	platform_driver_unregister(&mt_usb11_driver);
 }

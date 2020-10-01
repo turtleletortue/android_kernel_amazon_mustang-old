@@ -200,8 +200,7 @@ static void musbfsh_start_urb(struct musbfsh *musbfsh, int is_in,
 	u8 address = usb_pipedevice(pipe);
 	int epnum = hw_ep->epnum;
 
-	INFO("musbfsh_start_urb++, address=%d, hw_ep->epnum=%d,
-		urb_ep_addr:0x%x\r\n",
+	INFO("++, address=%d, hw_ep->epnum=%d, urb_ep_addr:0x%x\r\n",
 		address, epnum, urb->ep->desc.bEndpointAddress);
 
 	/* initialize software qh state */
@@ -460,8 +459,8 @@ static bool musbfsh_host_packet_rx(struct musbfsh *musbfsh, struct urb *urb,
 
 	/* musbfsh_ep_select(mbase, epnum); */
 	rx_count = musbfsh_readw(epio, MUSBFSH_RXCOUNT);
-	INFO("musbfsh_host_packet_rx++:real RX%d count %d,
-		buffer %p len %d/%d\n", epnum, rx_count,
+	INFO("real RX%d count %d, buffer %p len %d/%d\n",
+		epnum, rx_count,
 		urb->transfer_buffer, qh->offset,
 		urb->transfer_buffer_length);
 	/* unload FIFO */
@@ -643,8 +642,7 @@ static void musbfsh_ep_program(struct musbfsh *musbfsh, u8 epnum,
 	struct musbfsh_qh *qh = musbfsh_ep_get_qh(hw_ep, !is_out);
 	u16 packet_sz = qh->maxpacket;
 
-	INFO("musbfsh_ep_program++:%s hw%d urb %p spd%d dev%d
-		ep%d%s h_addr%02x h_port%02x bytes %d\n",
+	INFO("%s hw%d urb %p spd%d dev%d ep%d%s addr%02x port%02x bytes %d\n",
 		is_out ? "-->" : "<--", epnum, urb,
 		urb->dev->speed, qh->addr_reg, qh->epnum,
 		is_out ? "out" : "in", qh->h_addr_reg,
@@ -825,10 +823,8 @@ static void musbfsh_ep_program(struct musbfsh *musbfsh, u8 epnum,
 					    musbfsh_readw(epio,
 							  MUSBFSH_RXCOUNT);
 
-					INFO("Using DMA epnum%d: is_out=%d,
-						urb->actual_length = %d,
-						urb->transfer_buffer_length =
-						%d\n", epnum, is_out,
+					INFO("ep%d%s,reallen=%d,buflen=%d\n",
+						epnum, is_out ? "out" : "in",
 						urb->actual_length,
 						urb->transfer_buffer_length);
 
@@ -885,8 +881,7 @@ static void musbfsh_ep_program(struct musbfsh *musbfsh, u8 epnum,
 				}
 
 				csr |= MUSBFSH_RXCSR_H_REQPKT;
-				INFO("Rx DMA Mode1, Req Mode0:
-					RXCSR%d := %04x\n",
+				INFO("Rx DMA Mode1,Req Mode0:RXCSR%d := %04x\n",
 					epnum, csr);
 				musbfsh_writew(hw_ep->regs, MUSBFSH_RXCSR, csr);
 				csr = musbfsh_readw(hw_ep->regs, MUSBFSH_RXCSR);
@@ -937,8 +932,7 @@ static void musbfsh_ep_program(struct musbfsh *musbfsh, u8 epnum,
 					/* REVISIT reset CSR */
 				}
 				csr |= MUSBFSH_RXCSR_H_REQPKT;
-				INFO("Rx DMA Mode1, Req Mode1:
-					RXCSR%d := %04x\n",
+				INFO("Rx DMA Mode1,Req Mode1:RXCSR%d := %04x\n",
 					epnum, csr);
 				musbfsh_writew(hw_ep->regs, MUSBFSH_RXCSR, csr);
 				csr = musbfsh_readw(hw_ep->regs, MUSBFSH_RXCSR);
@@ -1359,8 +1353,8 @@ void musbfsh_host_tx(struct musbfsh *musbfsh, u8 epnum)
 		 */
 		if (tx_csr &
 		    (MUSBFSH_TXCSR_FIFONOTEMPTY | MUSBFSH_TXCSR_TXPKTRDY)) {
-			INFO("DMA complete but packet still in FIFO,
-				CSR %04x\n", tx_csr);
+			INFO("DMA complete but packet still in FIFO,CSR %04x\n",
+				tx_csr);
 			return;
 		}
 	}
@@ -1636,8 +1630,7 @@ void musbfsh_host_rx(struct musbfsh *musbfsh, u8 epnum)
 
 #if 0
 			rx_count = musbfsh_readw(epio, MUSBFSH_RXCOUNT);
-			WARNING("@@@@ %s(%d)+:  epnum(%d), rx_count(%d),
-			    dam_actual_len(%d)\n", __func__, __LINE__,
+			WARNING("@@ ep(%d),rx_count(%d),dma_actual_len(%d)\n",
 			    epnum, rx_count, dma->actual_len);
 #endif
 
@@ -2336,7 +2329,7 @@ static int musbfsh_bus_suspend(struct usb_hcd *hcd)
 	 */
 	mt_eint_unmask(CUST_EINT_MT6280_USB_WAKEUP_NUM);
 #endif
-#if 0
+#ifdef CONFIG_POGO_PIN_DOCK
 	power |= MUSBFSH_POWER_SUSPENDM | MUSBFSH_POWER_ENSUSPEND;
 	musbfsh_writeb(musbfsh->mregs, MUSBFSH_POWER, power);
 	mdelay(15);
@@ -2355,7 +2348,7 @@ static int musbfsh_bus_resume(struct usb_hcd *hcd)
 #ifdef MTK_USB_RUNTIME_SUPPORT
 	mt_eint_mask(CUST_EINT_MT6280_USB_WAKEUP_NUM);
 #endif
-#if 0
+#ifdef CONFIG_POGO_PIN_DOCK
 	power |= MUSBFSH_POWER_RESUME;
 	power &= ~MUSBFSH_POWER_SUSPENDM;
 	musbfsh_writeb(musbfsh->mregs, MUSBFSH_POWER, power);

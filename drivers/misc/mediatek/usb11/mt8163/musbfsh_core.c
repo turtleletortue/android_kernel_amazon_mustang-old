@@ -404,6 +404,10 @@ static irqreturn_t musbfsh_stage0_irq(struct musbfsh *musbfsh, u8 int_usb,
 		    ), VBUSERR_RETRY_COUNT - musbfsh->vbuserr_retry,
 		    musbfsh->port1_status);
 
+#ifdef CONFIG_POGO_PIN_DOCK
+		usb_root_hub_lost_power(musbfsh_to_hcd(musbfsh)->self.root_hub);
+#endif
+
 		/* go through A_WAIT_VFALL then start a new session */
 		if (!ignore)
 			musbfsh_platform_set_vbus(musbfsh, 0);
@@ -689,7 +693,7 @@ static void musbfsh_shutdown(struct platform_device *pdev)
 /* fits in 4KB */
 #define MAXFIFOSIZE 8096
 
-static struct musbfsh_fifo_cfg epx_cfg[] __initdata = {
+static struct musbfsh_fifo_cfg epx_cfg[] = {
 	{.hw_ep_num = 1, .style = FIFO_TX,
 	 .maxpacket = 512, .mode = BUF_SINGLE},
 	{.hw_ep_num = 1, .style = FIFO_RX,
@@ -720,7 +724,7 @@ static struct musbfsh_fifo_cfg epx_cfg[] __initdata = {
 	 .maxpacket = 512, .mode = BUF_SINGLE},
 };
 
-static struct musbfsh_fifo_cfg ep0_cfg __initdata = {
+static struct musbfsh_fifo_cfg ep0_cfg = {
 	.style = FIFO_RXTX,
 	.maxpacket = 64,
 };
@@ -733,8 +737,7 @@ static struct musbfsh_fifo_cfg ep0_cfg __initdata = {
  *
  * returns negative errno or offset for next fifo.
  */
-static int __init
-fifo_setup(struct musbfsh *musbfsh, struct musbfsh_hw_ep *hw_ep,
+static int fifo_setup(struct musbfsh *musbfsh, struct musbfsh_hw_ep *hw_ep,
 	   const struct musbfsh_fifo_cfg *cfg, u16 offset)
 {
 	void __iomem *mbase = musbfsh->mregs;
@@ -803,7 +806,7 @@ fifo_setup(struct musbfsh *musbfsh, struct musbfsh_hw_ep *hw_ep,
 	return offset + (maxpacket << ((c_size & MUSBFSH_FIFOSZ_DPB) ? 1 : 0));
 }
 
-static int __init ep_config_from_table(struct musbfsh *musbfsh)
+static int ep_config_from_table(struct musbfsh *musbfsh)
 {
 	const struct musbfsh_fifo_cfg *cfg = NULL;
 	unsigned int i = 0;
@@ -859,7 +862,7 @@ done:
 /* Initialize MUSB (M)HDRC part of the USB hardware subsystem;
  * configure endpoints, or take their config from silicon
  */
-static int __init musbfsh_core_init(struct musbfsh *musbfsh)
+static int musbfsh_core_init(struct musbfsh *musbfsh)
 {
 	void __iomem *mbase = musbfsh->mregs;
 	int status = 0;
@@ -1020,7 +1023,7 @@ irqreturn_t musbfsh_interrupt(struct musbfsh *musbfsh)
 
 
 #ifndef CONFIG_MUSBFSH_PIO_ONLY
-static bool use_dma __initdata = 1;
+static bool use_dma = 1;
 
 /* "modprobe ... use_dma=0" etc */
 module_param(use_dma, bool, 0644);
@@ -1046,9 +1049,8 @@ void musbfsh_dma_completion(struct musbfsh *musbfsh, u8 epnum, u8 transmit)
  * Init support
  */
 
-static struct musbfsh *__init
-allocate_instance(struct device *dev, struct musbfsh_hdrc_config *config,
-		  void __iomem *mbase)
+static struct musbfsh *allocate_instance(struct device *dev,
+		struct musbfsh_hdrc_config *config, void __iomem *mbase)
 {
 	struct musbfsh *musbfsh;
 	struct musbfsh_hw_ep *ep;
@@ -1175,18 +1177,16 @@ static int musb_init_controller(struct device *dev, int nIrq,
 	 */
 	musbfsh_Device = musbfsh;
 #ifdef CONFIG_OF
-	INFO("[Flow][USB11]%s:%d  unsigned longbase == 0x%lx ,
-		musbfsh_Device->phy_reg_base = 0x%lx\n",
-		__func__, __LINE__, (unsigned long)ctrlp,
+	INFO("[Flow][USB11]base = 0x%lx, phy_reg_base = 0x%lx\n",
+		(unsigned long)ctrlp,
 		(unsigned long)(musbfsh_Device->phy_reg_base));
 
 	musbfsh_Device->phy_reg_base = ctrlp;
 
 #endif
 	musbfsh->isr = generic_interrupt;
-	INFO("[Flow][USB11]%s:%d  unsigned longbase == 0x%lx ,
-		musbfsh_Device->phy_reg_base = 0x%lx\n",
-		__func__, __LINE__, (unsigned long)ctrlp,
+	INFO("[Flow][USB11]base = 0x%lx, phy_reg_base = 0x%lx\n",
+		(unsigned long)ctrlp,
 		(unsigned long)(musbfsh_Device->phy_reg_base));
 	status = musbfsh_platform_init(musbfsh);
 	INFO("[Flow][USB11]%s:%d\n", __func__, __LINE__);
@@ -1323,7 +1323,7 @@ static void wifi_hw_reset(void)
 }
 #endif
 
-static int __init musbfsh_probe(struct platform_device *pdev)
+static int musbfsh_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *node;
@@ -1335,9 +1335,8 @@ static int __init musbfsh_probe(struct platform_device *pdev)
 	void __iomem *pbase;
 	unsigned long usb_mac_base;
 	unsigned long usb_phy11_base;
-	int retval = 0
+	int retval = 0;
 
-	INFO("[Flow][USB11]%s:%d,CONFIG_OF\n", __func__, __LINE__);
 #if 0
 	pr_info("musb probe\n");
 	if (usb11_dts_np) {
@@ -1412,9 +1411,7 @@ static int __init musbfsh_probe(struct platform_device *pdev)
 	usb_phy11_base = (unsigned long)pbase;
 	irq = usb1_irq_number;
 
-	INFO("[Flow][USB11]musb probe reg: 0x%lx ,
-		usb_phy11_base == 0x%lx ,
-		pbase == 0x%lx irq: 0x%d\n",
+	INFO("[Flow][USB11]reg: 0x%lx,phy11_base=0x%lx,pbase=0x%lx,irq:0x%d\n",
 		usb_mac_base, usb_phy11_base,
 		(unsigned long)pbase, usb1_irq_number);
 
@@ -1453,7 +1450,7 @@ static int __init musbfsh_probe(struct platform_device *pdev)
 	return status;
 }
 
-static int __exit musbfsh_remove(struct platform_device *pdev)
+static int musbfsh_remove(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct musbfsh *musbfsh = dev_to_musbfsh(dev);
@@ -1601,11 +1598,21 @@ static int musbfsh_suspend(struct device *dev)
 	struct musbfsh *musbfsh = dev_to_musbfsh(&pdev->dev);
 
 	WARNING("++\n");
+#ifdef CONFIG_POGO_PIN_DOCK
+	if (true == musbfsh_power) {
+		disable_irq_nosync(usb1_irq_number);
+
+		spin_lock_irqsave(&musbfsh->lock, flags);
+		musbfsh_save_context(musbfsh);
+		musbfsh_platform_set_power(musbfsh, 0);
+		spin_unlock_irqrestore(&musbfsh->lock, flags);
+	}
+#else
 	spin_lock_irqsave(&musbfsh->lock, flags);
 	musbfsh_save_context(musbfsh);
 	musbfsh_platform_set_power(musbfsh, 0);
 	spin_unlock_irqrestore(&musbfsh->lock, flags);
-
+#endif
 	clk_unprepare(usb11_clk);
 	clk_unprepare(usb11_mcu_clk);
 	clk_unprepare(usb11_pll_clk);
@@ -1624,12 +1631,45 @@ static int musbfsh_resume(struct device *dev)
 	clk_prepare(usb11_clk);
 
 	WARNING("++\n");
+#ifdef CONFIG_POGO_PIN_DOCK
+	if (false == musbfsh_power) {
+		spin_lock_irqsave(&musbfsh->lock, flags);
+		musbfsh_platform_set_power(musbfsh, 1);
+		musbfsh_restore_context(musbfsh);
+		spin_unlock_irqrestore(&musbfsh->lock, flags);
+
+		enable_irq(usb1_irq_number);
+	}
+#else
 	spin_lock_irqsave(&musbfsh->lock, flags);
 	musbfsh_platform_set_power(musbfsh, 1);
 	musbfsh_restore_context(musbfsh);
 	spin_unlock_irqrestore(&musbfsh->lock, flags);
+#endif
 	return 0;
 }
+
+#ifdef CONFIG_POGO_PIN_DOCK
+void musbfsh_force_enable(bool enable)
+{
+	unsigned long flags;
+
+	WARNING("musbfsh_power= %d enable= %d \n",musbfsh_power,enable);
+	if((false == musbfsh_power) && (true == enable)) {
+		spin_lock_irqsave(&musbfsh_Device->lock, flags);
+		musbfsh_platform_set_power(musbfsh_Device, true);
+		spin_unlock_irqrestore(&musbfsh_Device->lock, flags);
+		enable_irq(usb1_irq_number);
+	} else if((true == musbfsh_power) && (false == enable)) {
+		musbfsh_root_disconnect(musbfsh_Device);
+		disable_irq_nosync(usb1_irq_number);
+		spin_lock_irqsave(&musbfsh_Device->lock, flags);
+		musbfsh_platform_set_power(musbfsh_Device, false);
+		spin_unlock_irqrestore(&musbfsh_Device->lock, flags);
+	}
+}
+EXPORT_SYMBOL_GPL(musbfsh_force_enable);
+#endif
 
 static const struct dev_pm_ops musbfsh_dev_pm_ops = {
 	.suspend = musbfsh_suspend,
@@ -1650,7 +1690,7 @@ static struct platform_driver musbfsh_driver = {
 		   .pm = MUSBFSH_DEV_PM_OPS,
 		   },
 	.probe = musbfsh_probe,
-	.remove = __exit_p(musbfsh_remove),
+	.remove = musbfsh_remove,
 	.shutdown = musbfsh_shutdown,
 };
 
